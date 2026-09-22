@@ -1,5 +1,5 @@
 --=====================================================================
---              B E R R E T A   •   UI LIBRARY v1.8 (SQUARE HITBOX)
+--              B E R R E T A   •   UI LIBRARY v2.1
 --=====================================================================
 
 local Players  = game:GetService("Players")
@@ -42,6 +42,17 @@ local Theme = {
 	Font      = Enum.Font.Gotham,
 	FontMed   = Enum.Font.GothamMedium,
 	FontBold  = Enum.Font.GothamBold,
+}
+
+local ChamsColors = {
+	Purple = Color3.fromRGB(139, 92, 246),
+	Red    = Color3.fromRGB(239, 68, 68),
+	Green  = Color3.fromRGB(34, 197, 94),
+	Blue   = Color3.fromRGB(59, 130, 246),
+	Yellow = Color3.fromRGB(250, 204, 21),
+	White  = Color3.fromRGB(255, 255, 255),
+	Black  = Color3.fromRGB(30, 30, 30),
+	Pink   = Color3.fromRGB(236, 72, 153),
 }
 
 local function Create(class, props)
@@ -156,9 +167,7 @@ local blur = Instance.new("BlurEffect")
 blur.Size = 0
 blur.Parent = Lighting
 
---=====================================================================
---  ПЛАВАЮЩАЯ КНОПКА ОТКРЫТИЯ МЕНЮ
---=====================================================================
+-- Плавающая кнопка
 local toggleBtn = Create("TextButton", {
 	Name = "ToggleButton",
 	Size = UDim2.fromOffset(52, 52),
@@ -173,7 +182,6 @@ local toggleBtn = Create("TextButton", {
 })
 Round(toggleBtn, 14)
 Stroke(toggleBtn, Theme.Accent, 2, 0)
-
 Create("TextLabel", {
 	Name = "Icon",
 	Size = UDim2.fromScale(1, 1),
@@ -207,9 +215,6 @@ toggleBtn.MouseLeave:Connect(function()
 	Tween(toggleBtn.Icon, 0.15, { TextColor3 = Theme.Accent })
 end)
 
---=====================================================================
---  ОСНОВНОЕ ОКНО
---=====================================================================
 local root = Create("CanvasGroup", {
 	Name = "Root",
 	Size = UDim2.fromOffset(640, 440),
@@ -917,6 +922,146 @@ function Tab:Slider(name, min, max, default, callback, step)
 	return api
 end
 
+function Tab:Dropdown(name, options, default, callback)
+	options = options or {}
+	local selected = default or options[1]
+
+	local holder = Create("Frame", {
+		Name = name,
+		Size = UDim2.new(1, -32, 0, 38),
+		BackgroundColor3 = Theme.Element,
+		BorderSizePixel = 0,
+		ClipsDescendants = false,
+		ZIndex = 2,
+		Parent = self.Page,
+	})
+	Round(holder, 8)
+
+	Create("TextLabel", {
+		Size = UDim2.new(0.5, -14, 1, 0),
+		Position = UDim2.new(0, 14, 0, 0),
+		BackgroundTransparency = 1,
+		Font = Theme.Font,
+		Text = name,
+		TextSize = 13,
+		TextColor3 = Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ZIndex = 3,
+		Parent = holder,
+	})
+
+	local btn = Create("TextButton", {
+		Size = UDim2.new(0.5, -24, 1, -12),
+		Position = UDim2.new(0.5, 12, 0, 6),
+		BackgroundColor3 = Theme.ElementHl,
+		BorderSizePixel = 0,
+		Text = "",
+		AutoButtonColor = false,
+		ZIndex = 3,
+		Parent = holder,
+	})
+	Round(btn, 6)
+
+	local valueLabel = Create("TextLabel", {
+		Size = UDim2.new(1, -26, 1, 0),
+		Position = UDim2.new(0, 10, 0, 0),
+		BackgroundTransparency = 1,
+		Font = Theme.FontMed,
+		Text = tostring(selected),
+		TextSize = 12,
+		TextColor3 = Theme.Accent,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
+		ZIndex = 4,
+		Parent = btn,
+	})
+	Create("TextLabel", {
+		Size = UDim2.new(0, 16, 1, 0),
+		Position = UDim2.new(1, -18, 0, 0),
+		BackgroundTransparency = 1,
+		Font = Theme.FontBold,
+		Text = "▾",
+		TextSize = 12,
+		TextColor3 = Theme.SubText,
+		ZIndex = 4,
+		Parent = btn,
+	})
+
+	local list = Create("Frame", {
+		Size = UDim2.new(1, 0, 0, 0),
+		Position = UDim2.new(0, 0, 1, 6),
+		BackgroundColor3 = Theme.Element,
+		BorderSizePixel = 0,
+		ClipsDescendants = true,
+		Visible = false,
+		ZIndex = 20,
+		Parent = holder,
+	})
+	Round(list, 8)
+	Stroke(list, Theme.Stroke, 1, 0.2)
+	List(list, 2)
+	Pad(list, 4, 4)
+
+	local isOpen = false
+
+	local function close()
+		isOpen = false
+		Tween(list, 0.15, { Size = UDim2.new(1, 0, 0, 0) })
+		task.delay(0.15, function()
+			if not isOpen then list.Visible = false end
+		end)
+	end
+
+	local function open()
+		isOpen = true
+		list.Visible = true
+		Tween(list, 0.15, { Size = UDim2.new(1, 0, 0, #options * 28 + 8) })
+	end
+
+	for _, opt in ipairs(options) do
+		local ob = Create("TextButton", {
+			Size = UDim2.new(1, 0, 0, 26),
+			BackgroundColor3 = Theme.Element,
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			Text = tostring(opt),
+			Font = Theme.Font,
+			TextSize = 12,
+			TextColor3 = Theme.Text,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			AutoButtonColor = false,
+			ZIndex = 21,
+			Parent = list,
+		})
+		Round(ob, 6)
+		Create("UIPadding", { PaddingLeft = UDim.new(0, 10), Parent = ob })
+
+		ob.MouseEnter:Connect(function()
+			Tween(ob, 0.12, { BackgroundTransparency = 0, BackgroundColor3 = Theme.ElementHl })
+		end)
+		ob.MouseLeave:Connect(function()
+			Tween(ob, 0.12, { BackgroundTransparency = 1 })
+		end)
+		ob.MouseButton1Click:Connect(function()
+			selected = opt
+			valueLabel.Text = tostring(opt)
+			close()
+			if callback then task.spawn(callback, opt) end
+		end)
+	end
+
+	btn.MouseButton1Click:Connect(function()
+		if isOpen then close() else open() end
+	end)
+
+	local api = {
+		Set = function(v) selected = v; valueLabel.Text = tostring(v) end,
+		Get = function() return selected end,
+	}
+	Berreta.Flags[name] = api
+	return api
+end
+
 --=====================================================================
 --  ЗАПУСК
 --=====================================================================
@@ -926,7 +1071,7 @@ Draggable(root, topbar)
 task.wait(0.15)
 Berreta:SetOpen(false)
 task.wait(0.3)
-Berreta:Notify("Berreta", "Нажми кнопку 'B' слева или " .. Berreta.ToggleKey.Name, 4)
+Berreta:Notify("Berreta", "Нажми 'B' слева или " .. Berreta.ToggleKey.Name, 4)
 
 local MainTab   = Berreta:Tab("Главная", "🔒")
 local PlayerTab = Berreta:Tab("Игрок", "👤")
@@ -1023,6 +1168,116 @@ VisualTab:Toggle("No Fog", false, function(state)
 	Lighting.FogStart = state and 100000 or 0
 end)
 
+-- CHAMS
+VisualTab:Section("Chams")
+
+local chamsColor = ChamsColors.Purple
+local chamsFill = 0.3
+local chamsConn = {}
+
+local function clearChams()
+	for _, c in ipairs(chamsConn) do c:Disconnect() end
+	chamsConn = {}
+	for _, plr in ipairs(Players:GetPlayers()) do
+		if plr.Character then
+			for _, part in ipairs(plr.Character:GetDescendants()) do
+				if part:IsA("BasePart") then
+					if part:GetAttribute("BerretaChamsColor") ~= nil then
+						part.Color = part:GetAttribute("BerretaChamsColor")
+						part:SetAttribute("BerretaChamsColor", nil)
+					end
+					if part:GetAttribute("BerretaChamsMat") ~= nil then
+						part.Material = Enum.Material.Plastic
+						part:SetAttribute("BerretaChamsMat", nil)
+					end
+					if part:GetAttribute("BerretaChamsTrans") ~= nil then
+						part.Transparency = part:GetAttribute("BerretaChamsTrans")
+						part:SetAttribute("BerretaChamsTrans", nil)
+					end
+				end
+			end
+		end
+	end
+end
+
+local function applyChams(plr)
+	if plr == LP then return end
+	if not plr.Character then return end
+	local flag = Berreta.Flags["Chams"]
+	if not (flag and flag.Get()) then return end
+
+	for _, part in ipairs(plr.Character:GetDescendants()) do
+		if part:IsA("BasePart") then
+			if part:GetAttribute("BerretaChamsColor") == nil then
+				part:SetAttribute("BerretaChamsColor", part.Color)
+				part:SetAttribute("BerretaChamsMat", part.Material)
+				part:SetAttribute("BerretaChamsTrans", part.Transparency)
+			end
+			part.Color = chamsColor
+			part.Material = Enum.Material.ForceField
+			part.Transparency = chamsFill
+		end
+	end
+end
+
+VisualTab:Toggle("Chams", false, function(state)
+	if state then
+		for _, plr in ipairs(Players:GetPlayers()) do applyChams(plr) end
+		table.insert(chamsConn, Players.PlayerAdded:Connect(function(plr)
+			table.insert(chamsConn, plr.CharacterAdded:Connect(function()
+				task.wait(0.3)
+				applyChams(plr)
+			end))
+		end))
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= LP then
+				table.insert(chamsConn, plr.CharacterAdded:Connect(function()
+					task.wait(0.3)
+					applyChams(plr)
+				end))
+			end
+		end
+		Berreta:Notify("Visual", "Chams: ВКЛ", 2)
+	else
+		clearChams()
+		Berreta:Notify("Visual", "Chams: ВЫКЛ", 2)
+	end
+end)
+
+VisualTab:Dropdown("Chams Цвет",
+	{"Purple","Red","Green","Blue","Yellow","Pink","White","Black"}, "Purple",
+	function(v)
+		chamsColor = ChamsColors[v] or ChamsColors.Purple
+		if Berreta.Flags["Chams"] and Berreta.Flags["Chams"].Get() then
+			for _, plr in ipairs(Players:GetPlayers()) do
+				if plr ~= LP and plr.Character then
+					for _, part in ipairs(plr.Character:GetDescendants()) do
+						if part:IsA("BasePart") and part:GetAttribute("BerretaChamsColor") ~= nil then
+							part.Color = chamsColor
+						end
+					end
+				end
+			end
+		end
+	end
+)
+
+VisualTab:Slider("Chams Прозрачность %", 0, 100, 30, function(v)
+	chamsFill = v / 100
+	if Berreta.Flags["Chams"] and Berreta.Flags["Chams"].Get() then
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= LP and plr.Character then
+				for _, part in ipairs(plr.Character:GetDescendants()) do
+					if part:IsA("BasePart") and part:GetAttribute("BerretaChamsColor") ~= nil then
+						part.Transparency = chamsFill
+					end
+				end
+			end
+		end
+	end
+end)
+
+-- ESP
 VisualTab:Section("ESP")
 
 local espConns = {}
@@ -1048,7 +1303,7 @@ local function applyESP(plr)
 	h.Name = "BerretaESP"
 	h.FillColor = Theme.Accent
 	h.OutlineColor = Theme.White
-	h.FillTransparency = 0.5
+	h.FillTransparency = 0.4
 	h.OutlineTransparency = 0
 	h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
 	h.Parent = plr.Character
@@ -1057,14 +1312,12 @@ end
 VisualTab:Toggle("Player ESP", false, function(state)
 	if state then
 		for _, plr in ipairs(Players:GetPlayers()) do applyESP(plr) end
-
 		table.insert(espConns, Players.PlayerAdded:Connect(function(plr)
 			table.insert(espConns, plr.CharacterAdded:Connect(function()
 				task.wait(0.3)
 				applyESP(plr)
 			end))
 		end))
-
 		for _, plr in ipairs(Players:GetPlayers()) do
 			if plr ~= LP then
 				table.insert(espConns, plr.CharacterAdded:Connect(function()
@@ -1140,25 +1393,42 @@ MiscTab:Label("Berreta v1.0", Theme.SubText)
 MiscTab:Label("Made with ❤️", Color3.fromRGB(255, 105, 180))
 
 --=====================================================================
---  COMBAT — КВАДРАТНЫЕ ХИТБОКСЫ
+--  COMBAT — ХИТБОКСЫ С АВТОВОССТАНОВЛЕНИЕМ ПОСЛЕ РЕСПАВНА
 --=====================================================================
 CombatTab:Section("Hitbox Expander")
 
 local hitboxConn
-local activeHitboxes = {}
+local activeBoxes = {}
+local activeOutlines = {}
 
 local function removeHitbox(plr)
-	local box = activeHitboxes[plr]
-	if box then
-		box:Destroy()
-		activeHitboxes[plr] = nil
-	end
+	local box = activeBoxes[plr]
+	if box and box.Parent then box:Destroy() end
+	activeBoxes[plr] = nil
+
+	local outline = activeOutlines[plr]
+	if outline and outline.Parent then outline:Destroy() end
+	activeOutlines[plr] = nil
+
 	if plr.Character then
 		for _, part in ipairs(plr.Character:GetDescendants()) do
-			if part:IsA("BasePart") and part.Name ~= "BerretaHitbox" then
-				if part:GetAttribute("BerretaOrigTrans") then
+			if part:IsA("BasePart")
+			and part.Name ~= "BerretaVisualBox" then
+				if part:GetAttribute("BerretaOrigSize") ~= nil then
+					part.Size = part:GetAttribute("BerretaOrigSize")
+					part:SetAttribute("BerretaOrigSize", nil)
+				end
+				if part:GetAttribute("BerretaOrigTrans") ~= nil then
 					part.Transparency = part:GetAttribute("BerretaOrigTrans")
 					part:SetAttribute("BerretaOrigTrans", nil)
+				end
+				if part:GetAttribute("BerretaOrigCollide") ~= nil then
+					part.CanCollide = part:GetAttribute("BerretaOrigCollide")
+					part:SetAttribute("BerretaOrigCollide", nil)
+				end
+				if part:GetAttribute("BerretaOrigMassless") ~= nil then
+					part.Massless = part:GetAttribute("BerretaOrigMassless")
+					part:SetAttribute("BerretaOrigMassless", nil)
 				end
 			end
 		end
@@ -1166,10 +1436,11 @@ local function removeHitbox(plr)
 end
 
 local function clearHitboxes()
-	for plr in pairs(activeHitboxes) do
+	for plr in pairs(activeBoxes) do
 		removeHitbox(plr)
 	end
-	activeHitboxes = {}
+	activeBoxes = {}
+	activeOutlines = {}
 end
 
 local function createHitbox(plr)
@@ -1177,7 +1448,10 @@ local function createHitbox(plr)
 	if not plr.Character then return end
 
 	local flagEnabled = Berreta.Flags["Enable Hitbox"] and Berreta.Flags["Enable Hitbox"].Get()
-	if not flagEnabled then return end
+	if not flagEnabled then
+		removeHitbox(plr)
+		return
+	end
 
 	local teamCheck = Berreta.Flags["Team Check"] and Berreta.Flags["Team Check"].Get()
 	if teamCheck and plr.Team == LP.Team then
@@ -1185,49 +1459,89 @@ local function createHitbox(plr)
 		return
 	end
 
-	local sizeVal = Berreta.Flags["Hitbox Size"] and Berreta.Flags["Hitbox Size"].Get() or 15
-	local transVal = Berreta.Flags["Transparency %"] and Berreta.Flags["Transparency %"].Get() or 70
+	local sizeVal  = Berreta.Flags["Hitbox Size"] and Berreta.Flags["Hitbox Size"].Get() or 10
+	local transVal = Berreta.Flags["Transparency %"] and Berreta.Flags["Transparency %"].Get() or 60
 
 	local char = plr.Character
-	local hrp = char:FindFirstChild("HumanoidRootPart")
+	local hrp  = char:FindFirstChild("HumanoidRootPart")
 	if not hrp then return end
 
-	-- Скрываем оригинальные части тела
+	-- Если старый куб от прошлого персонажа — сбрасываем
+	local existingBox = activeBoxes[plr]
+	if existingBox and (not existingBox.Parent or existingBox.Parent ~= char) then
+		if existingBox.Parent then existingBox:Destroy() end
+		activeBoxes[plr] = nil
+		local existingOutline = activeOutlines[plr]
+		if existingOutline and existingOutline.Parent then existingOutline:Destroy() end
+		activeOutlines[plr] = nil
+	end
+
+	-- Реальный хитбокс — расширяем части тела
 	for _, part in ipairs(char:GetDescendants()) do
-		if part:IsA("BasePart") and part.Name ~= "BerretaHitbox" then
-			if not part:GetAttribute("BerretaOrigTrans") then
+		if part:IsA("BasePart") and part.Name ~= "BerretaVisualBox" then
+			if part:GetAttribute("BerretaOrigSize") == nil then
+				part:SetAttribute("BerretaOrigSize", part.Size)
 				part:SetAttribute("BerretaOrigTrans", part.Transparency)
+				part:SetAttribute("BerretaOrigCollide", part.CanCollide)
+				part:SetAttribute("BerretaOrigMassless", part.Massless)
 			end
+			part.Size = Vector3.new(sizeVal, sizeVal, sizeVal)
 			part.Transparency = 1
+			part.CanCollide = false
+			part.Massless = true
 		end
 	end
 
-	-- Создаём / обновляем ОДИН квадратный хитбокс
-	local box = activeHitboxes[plr]
+	-- Визуальный куб
+	local box = activeBoxes[plr]
 	if not box or not box.Parent then
 		box = Instance.new("Part")
-		box.Name = "BerretaHitbox"
+		box.Name = "BerretaVisualBox"
 		box.Shape = Enum.PartType.Block
-		box.Material = Enum.Material.ForceField
+		box.Material = Enum.Material.Neon
 		box.Color = Color3.fromRGB(139, 92, 246)
 		box.Anchored = true
 		box.CanCollide = false
 		box.CanQuery = false
 		box.CanTouch = false
 		box.Massless = true
+		box.CastShadow = false
 		box.TopSurface = Enum.SurfaceType.Smooth
 		box.BottomSurface = Enum.SurfaceType.Smooth
 		box.Parent = char
-		activeHitboxes[plr] = box
+		activeBoxes[plr] = box
 	end
 
 	box.Size = Vector3.new(sizeVal, sizeVal, sizeVal)
 	box.Transparency = 1 - (transVal / 100)
 	box.CFrame = hrp.CFrame
+
+	-- Обводка
+	local outline = activeOutlines[plr]
+	if not outline or not outline.Parent then
+		outline = Instance.new("SelectionBox")
+		outline.Name = "BerretaHitboxOutline"
+		outline.Color3 = Color3.fromRGB(180, 140, 255)
+		outline.LineThickness = 0.15
+		outline.SurfaceTransparency = 1
+		outline.Adornee = box
+		outline.Parent = char
+		activeOutlines[plr] = outline
+	end
+	outline.Adornee = box
 end
 
 CombatTab:Toggle("Enable Hitbox", false, function(state)
 	if state then
+		activeBoxes = {}
+		activeOutlines = {}
+
+		for _, plr in ipairs(Players:GetPlayers()) do
+			if plr ~= LP and plr.Character then
+				createHitbox(plr)
+			end
+		end
+
 		hitboxConn = RunService.Heartbeat:Connect(function()
 			for _, plr in ipairs(Players:GetPlayers()) do
 				createHitbox(plr)
@@ -1241,31 +1555,54 @@ CombatTab:Toggle("Enable Hitbox", false, function(state)
 	end
 end)
 
+-- Восстановление хитбоксов после респавна игроков
+for _, plr in ipairs(Players:GetPlayers()) do
+	if plr ~= LP then
+		plr.CharacterAdded:Connect(function(char)
+			removeHitbox(plr)
+			task.wait(0.3)
+			if Berreta.Flags["Enable Hitbox"] and Berreta.Flags["Enable Hitbox"].Get() then
+				createHitbox(plr)
+			end
+		end)
+	end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+	plr.CharacterAdded:Connect(function(char)
+		removeHitbox(plr)
+		task.wait(0.3)
+		if Berreta.Flags["Enable Hitbox"] and Berreta.Flags["Enable Hitbox"].Get() then
+			createHitbox(plr)
+		end
+	end)
+end)
+
 Players.PlayerRemoving:Connect(function(plr)
 	removeHitbox(plr)
 end)
 
-CombatTab:Slider("Hitbox Size", 1, 30, 15, function(value) end)
-CombatTab:Slider("Transparency %", 0, 100, 70, function(value) end)
+CombatTab:Slider("Hitbox Size", 1, 30, 10, function(value) end)
+CombatTab:Slider("Transparency %", 0, 100, 60, function(value) end)
 CombatTab:Toggle("Team Check", false, function(state) end)
 
 CombatTab:Section("Пресеты")
 CombatTab:ButtonRow({
 	{ name = "Маленький", callback = function()
 		Berreta.Flags["Hitbox Size"]:Set(5)
-		Berreta:Notify("Пресет", "Размер установлен на 5", 2)
+		Berreta:Notify("Пресет", "Размер: 5", 2)
 	end },
 	{ name = "Средний", callback = function()
 		Berreta.Flags["Hitbox Size"]:Set(10)
-		Berreta:Notify("Пресет", "Размер установлен на 10", 2)
+		Berreta:Notify("Пресет", "Размер: 10", 2)
 	end },
 	{ name = "Большой", callback = function()
 		Berreta.Flags["Hitbox Size"]:Set(20)
-		Berreta:Notify("Пресет", "Размер установлен на 20", 2)
+		Berreta:Notify("Пресет", "Размер: 20", 2)
 	end },
 	{ name = "XXL", callback = function()
 		Berreta.Flags["Hitbox Size"]:Set(30)
-		Berreta:Notify("Пресет", "Размер установлен на 30", 2)
+		Berreta:Notify("Пресет", "Размер: 30", 2)
 	end },
 })
 
