@@ -1,5 +1,5 @@
 --=====================================================================
---              B E R R E T A   •   UI LIBRARY v1.7 (TOGGLE BUTTON)
+--              B E R R E T A   •   UI LIBRARY v1.8 (SQUARE HITBOX)
 --=====================================================================
 
 local Players  = game:GetService("Players")
@@ -174,7 +174,6 @@ local toggleBtn = Create("TextButton", {
 Round(toggleBtn, 14)
 Stroke(toggleBtn, Theme.Accent, 2, 0)
 
--- Иконка "B"
 Create("TextLabel", {
 	Name = "Icon",
 	Size = UDim2.fromScale(1, 1),
@@ -187,7 +186,6 @@ Create("TextLabel", {
 	Parent = toggleBtn,
 })
 
--- Пульсирующая обводка (привлекает внимание)
 local pulseStroke = toggleBtn:FindFirstChildOfClass("UIStroke")
 task.spawn(function()
 	while toggleBtn.Parent do
@@ -449,9 +447,6 @@ function Berreta:Notify(title, text, duration)
 	end)
 end
 
---=====================================================================
---  ОТКРЫТИЕ / ЗАКРЫТИЕ
---=====================================================================
 local opened = false
 
 function Berreta:SetOpen(state)
@@ -475,12 +470,7 @@ function Berreta:Toggle()
 	self:SetOpen(not opened)
 end
 
--- Клик по плавающей кнопке
-toggleBtn.MouseButton1Click:Connect(function()
-	Berreta:Toggle()
-end)
-
--- Кнопка-минус и крестик
+toggleBtn.MouseButton1Click:Connect(function() Berreta:Toggle() end)
 minBtn.MouseButton1Click:Connect(function() Berreta:SetOpen(false) end)
 closeBtn.MouseButton1Click:Connect(function()
 	opened = false
@@ -488,7 +478,6 @@ closeBtn.MouseButton1Click:Connect(function()
 	gui:Destroy()
 end)
 
--- Отслеживание клавиши (с защитой от удержания)
 local _toggleHeld = false
 UIS.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
@@ -506,7 +495,6 @@ UIS.InputEnded:Connect(function(input, gpe)
 	end
 end)
 
--- Перетаскивание плавающей кнопки
 do
 	local dragging, dragInput, dragStart, startPos
 	toggleBtn.InputBegan:Connect(function(input)
@@ -1151,26 +1139,40 @@ MiscTab:Section("Информация")
 MiscTab:Label("Berreta v1.0", Theme.SubText)
 MiscTab:Label("Made with ❤️", Color3.fromRGB(255, 105, 180))
 
--- COMBAT
+--=====================================================================
+--  COMBAT — КВАДРАТНЫЕ ХИТБОКСЫ
+--=====================================================================
 CombatTab:Section("Hitbox Expander")
 
 local hitboxConn
-local function clearHitboxes()
-	for _, plr in ipairs(Players:GetPlayers()) do
-		if plr.Character then
-			for _, part in ipairs(plr.Character:GetDescendants()) do
-				if part:IsA("BasePart") then
-					if part:GetAttribute("BerretaOrigSize") then
-						part.Size = part:GetAttribute("BerretaOrigSize")
-						part.Transparency = part:GetAttribute("BerretaOrigTrans") or part.Transparency
-					end
+local activeHitboxes = {}
+
+local function removeHitbox(plr)
+	local box = activeHitboxes[plr]
+	if box then
+		box:Destroy()
+		activeHitboxes[plr] = nil
+	end
+	if plr.Character then
+		for _, part in ipairs(plr.Character:GetDescendants()) do
+			if part:IsA("BasePart") and part.Name ~= "BerretaHitbox" then
+				if part:GetAttribute("BerretaOrigTrans") then
+					part.Transparency = part:GetAttribute("BerretaOrigTrans")
+					part:SetAttribute("BerretaOrigTrans", nil)
 				end
 			end
 		end
 	end
 end
 
-local function expandHitbox(plr)
+local function clearHitboxes()
+	for plr in pairs(activeHitboxes) do
+		removeHitbox(plr)
+	end
+	activeHitboxes = {}
+end
+
+local function createHitbox(plr)
 	if plr == LP then return end
 	if not plr.Character then return end
 
@@ -1178,29 +1180,57 @@ local function expandHitbox(plr)
 	if not flagEnabled then return end
 
 	local teamCheck = Berreta.Flags["Team Check"] and Berreta.Flags["Team Check"].Get()
-	if teamCheck and plr.Team == LP.Team then return end
+	if teamCheck and plr.Team == LP.Team then
+		removeHitbox(plr)
+		return
+	end
 
 	local sizeVal = Berreta.Flags["Hitbox Size"] and Berreta.Flags["Hitbox Size"].Get() or 15
 	local transVal = Berreta.Flags["Transparency %"] and Berreta.Flags["Transparency %"].Get() or 70
 
-	for _, part in ipairs(plr.Character:GetDescendants()) do
-		if part:IsA("BasePart") then
-			if not part:GetAttribute("BerretaOrigSize") then
-				part:SetAttribute("BerretaOrigSize", part.Size)
+	local char = plr.Character
+	local hrp = char:FindFirstChild("HumanoidRootPart")
+	if not hrp then return end
+
+	-- Скрываем оригинальные части тела
+	for _, part in ipairs(char:GetDescendants()) do
+		if part:IsA("BasePart") and part.Name ~= "BerretaHitbox" then
+			if not part:GetAttribute("BerretaOrigTrans") then
 				part:SetAttribute("BerretaOrigTrans", part.Transparency)
 			end
-			part.Size = Vector3.new(sizeVal, sizeVal, sizeVal)
-			part.Transparency = 1 - (transVal / 100)
-			part.CanCollide = false
+			part.Transparency = 1
 		end
 	end
+
+	-- Создаём / обновляем ОДИН квадратный хитбокс
+	local box = activeHitboxes[plr]
+	if not box or not box.Parent then
+		box = Instance.new("Part")
+		box.Name = "BerretaHitbox"
+		box.Shape = Enum.PartType.Block
+		box.Material = Enum.Material.ForceField
+		box.Color = Color3.fromRGB(139, 92, 246)
+		box.Anchored = true
+		box.CanCollide = false
+		box.CanQuery = false
+		box.CanTouch = false
+		box.Massless = true
+		box.TopSurface = Enum.SurfaceType.Smooth
+		box.BottomSurface = Enum.SurfaceType.Smooth
+		box.Parent = char
+		activeHitboxes[plr] = box
+	end
+
+	box.Size = Vector3.new(sizeVal, sizeVal, sizeVal)
+	box.Transparency = 1 - (transVal / 100)
+	box.CFrame = hrp.CFrame
 end
 
 CombatTab:Toggle("Enable Hitbox", false, function(state)
 	if state then
 		hitboxConn = RunService.Heartbeat:Connect(function()
 			for _, plr in ipairs(Players:GetPlayers()) do
-				expandHitbox(plr)
+				createHitbox(plr)
 			end
 		end)
 		Berreta:Notify("Combat", "Hitbox Expander: ВКЛ", 2)
@@ -1209,6 +1239,10 @@ CombatTab:Toggle("Enable Hitbox", false, function(state)
 		clearHitboxes()
 		Berreta:Notify("Combat", "Hitbox Expander: ВЫКЛ", 2)
 	end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+	removeHitbox(plr)
 end)
 
 CombatTab:Slider("Hitbox Size", 1, 30, 15, function(value) end)
